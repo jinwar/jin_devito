@@ -12,6 +12,7 @@ class acoustic_model:
     
     def set_default(self):
         self.set_two_layer_model()
+        self.set_model_time(2000.0)
         self.set_ricker_src(10,2500,40)
         rN = 101
         rx = np.linspace(0,5000,rN)
@@ -23,9 +24,9 @@ class acoustic_model:
     
     def set_two_layer_model(self,
             x_range = 5000,
-            y_range = 5000,
+            y_range = 2000,
             grid_size = 10,
-            boundary_depth=2500,
+            boundary_depth=1000,
             v1 = 1.5,
             v2 = 2.5  
         ):
@@ -34,10 +35,11 @@ class acoustic_model:
         v1 and v2 are in km/s
         '''
 
-        Nx = x_range//spacing
-        Ny = y_range//spacing
+        Nx = x_range//grid_size
+        Ny = y_range//grid_size
         shape = (Nx,Ny)
         spacing = (grid_size,grid_size)
+        origin = (0,0)
 
         v = np.empty(shape,dtype=np.float32)
 
@@ -67,6 +69,7 @@ class acoustic_model:
 
         self.time_range = TimeAxis(start=t0,stop=tn,step=dt)
         self.total_time = total_time
+        self.dt = dt
     
     def set_ricker_src(self,f0,sx,sz):
         src = RickerSource(name='src', grid=self.model.grid, 
@@ -89,7 +92,7 @@ class acoustic_model:
         unit in meters
         '''
         rec = Receiver(name='rec',
-                grid=self.model.grid
+                grid=self.model.grid,
                 npoint=len(rx),
                 time_range = self.time_range
                 )
@@ -103,6 +106,8 @@ class acoustic_model:
         model = self.model
         src = self.src
         rec = self.rec
+        time_range = self.time_range
+        dt = self.dt
 
         # Define the wavefield with the size of the model and the time dimension
         u = TimeFunction(name="u", grid=model.grid, time_order=2, space_order=2, save=time_range.num)
