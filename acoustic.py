@@ -1,9 +1,13 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib import animation
+from IPython.display import HTML
 
 from examples.seismic import Model, plot_velocity, TimeAxis, RickerSource,Receiver,plot_shotrecord
 from devito import TimeFunction
 from devito import Eq, solve
 from devito import Operator
+
 
 class acoustic_model:
 
@@ -13,7 +17,7 @@ class acoustic_model:
     def set_default(self):
         self.set_two_layer_model()
         self.set_model_time(2000.0)
-        self.set_ricker_src(10,2500,40)
+        self.set_ricker_src(2500,40)
         rN = 101
         rx = np.linspace(0,5000,rN)
         rz = np.ones(rN)*40
@@ -47,7 +51,7 @@ class acoustic_model:
         v[:,:boundary_ind] = v1
         v[:,boundary_ind:] = v2
         model = Model(vp=v, origin=origin, shape=shape, spacing=spacing,
-                space_order=2, nbl=10, bcs="damp")
+                space_order=8, nbl=10, bcs="damp")
 
         self.model = model
     
@@ -71,7 +75,7 @@ class acoustic_model:
         self.total_time = total_time
         self.dt = dt
     
-    def set_ricker_src(self,f0,sx,sz):
+    def set_ricker_src(self,sx,sz,f0=10):
         src = RickerSource(name='src', grid=self.model.grid, 
                     f0=f0/1000.0,
                     npoint=1, time_range=self.time_range)        
@@ -134,3 +138,46 @@ class acoustic_model:
 
     def plot_shotrecord(self):
         plot_shotrecord(self.rec.data,self.model,0,self.total_time)
+    
+    def plot_wavefield_bytime(self,time=0):
+        """
+        Time should be in ms
+        """
+        xmin,ymin = self.model.grid.origin
+        xrange,yrange = self.model.grid.extent
+        xmax = xmin+xrange
+        ymax = ymin+yrange
+        extent = [xmin, xmax, ymax, ymin]
+        time_index = int(time/self.dt)
+        imax = plt.imshow(self.u.data[time_index].T,extent=extent,cmap='gray')
+        return imax
+        
+    def make_wavefield_movie(self,filename,timestep_skip=20):
+        mod = self
+        data = mod.u.data
+
+        ## . . Animate Solution and compute error
+        tskip = timestep_skip
+        frameN = data.shape[0]//tskip - 1
+        amax = np.max(np.abs(data))
+
+        ## . . Set up movie
+        fig = plt.figure()
+        im_ax = mod.plot_wavefield_bytime(0)
+        plt.clim(np.array([-1,1])*amax*0.1)
+
+        def AWE_2D_animate(i):
+            x = data[i*tskip,:,:]
+            im_ax.set_data(x.T)
+            t = mod.dt*i*tskip    
+            plt.title('Time: {:.1f} ms'.format(t))
+
+        ## . . Call the animator
+        anim = animation.FuncAnimation(fig,AWE_2D_animate,frames=frameN,interval=100)
+        anim.save(filename)
+        plt.close()
+
+    def HTML_display(self,filename,width=500):
+        return HTML(f"""
+        <img src="{filename}" width="{width}" />
+        """)
