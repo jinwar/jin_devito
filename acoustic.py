@@ -139,6 +139,17 @@ class acoustic_model:
     def plot_shotrecord(self):
         plot_shotrecord(self.rec.data,self.model,0,self.total_time)
     
+    def plot_src_rec(self,skip_rec=1):
+        rx = self.rec.coordinates.data[:,0]
+        rz = self.rec.coordinates.data[:,1]
+
+        sx = self.src.coordinates.data[:,0]
+        sz = self.src.coordinates.data[:,1]
+
+        plt.plot(sx,sz,'ro')
+        plt.plot(rx[::skip_rec],rz[::skip_rec],'go')
+
+    
     def plot_wavefield_bytime(self,time=0):
         """
         Time should be in ms
@@ -152,7 +163,8 @@ class acoustic_model:
         imax = plt.imshow(self.u.data[time_index].T,extent=extent,cmap='gray')
         return imax
         
-    def make_wavefield_movie(self,filename,timestep_skip=20):
+    def make_wavefield_movie(self,filename,timestep_skip=20,
+                        plot_srcrec=False,skip_rec=1):
         mod = self
         data = mod.u.data
 
@@ -165,6 +177,8 @@ class acoustic_model:
         fig = plt.figure()
         im_ax = mod.plot_wavefield_bytime(0)
         plt.clim(np.array([-1,1])*amax*0.1)
+        if plot_srcrec:
+            self.plot_src_rec(skip_rec=skip_rec)
 
         def AWE_2D_animate(i):
             x = data[i*tskip,:,:]
@@ -181,3 +195,10 @@ class acoustic_model:
         return HTML(f"""
         <img src="{filename}" width="{width}" />
         """)
+    
+    def export_rec_data(self,filename):
+        mod = self
+        rx = mod.rec.coordinates.data[:,0]
+        rz = mod.rec.coordinates.data[:,1]
+        data = mod.rec.data
+        np.savez(filename,rx=rx,rz=rz,data=data)
