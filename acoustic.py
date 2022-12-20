@@ -31,12 +31,12 @@ class acoustic_model:
             y_range = 2000,
             grid_size = 10,
             boundary_depth=1000,
-            v1 = 1.5,
-            v2 = 2.5  
+            v1 = 1500,
+            v2 = 2500  
         ):
         '''
         x_range, y_range, grid_size, boundary_depth are in meter
-        v1 and v2 are in km/s
+        v1 and v2 are in m/s
         '''
 
         Nx = x_range//grid_size
@@ -48,8 +48,8 @@ class acoustic_model:
         v = np.empty(shape,dtype=np.float32)
 
         boundary_ind = boundary_depth//grid_size
-        v[:,:boundary_ind] = v1
-        v[:,boundary_ind:] = v2
+        v[:,:boundary_ind] = v1/1000.0
+        v[:,boundary_ind:] = v2/1000.0
         model = Model(vp=v, origin=origin, shape=shape, spacing=spacing,
                 space_order=8, nbl=10, bcs="damp")
 
