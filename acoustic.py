@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
-from IPython.display import HTML
+from IPython.display import HTML,Image
 
 from examples.seismic import Model, plot_velocity, TimeAxis, RickerSource,Receiver,plot_shotrecord
 from devito import TimeFunction
@@ -196,9 +196,12 @@ class acoustic_model:
         <img src="{filename}" width="{width}" />
         """)
     
+    def IMAGE_display(self,filename):
+        return Image(open(filename,'rb').read())
+    
     def export_rec_data(self,filename):
         mod = self
         rx = mod.rec.coordinates.data[:,0]
         rz = mod.rec.coordinates.data[:,1]
         data = mod.rec.data
-        np.savez(filename,rx=rx,rz=rz,data=data)
+        np.savez(filename,rx=rx,rz=rz,data=data,dt = self.dt)
