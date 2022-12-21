@@ -164,7 +164,7 @@ class acoustic_model:
         return imax
         
     def make_wavefield_movie(self,filename,timestep_skip=20,
-                        plot_srcrec=False,skip_rec=1):
+                        plot_srcrec=False,skip_rec=1,writer=None):
         mod = self
         data = mod.u.data
 
@@ -188,7 +188,10 @@ class acoustic_model:
 
         ## . . Call the animator
         anim = animation.FuncAnimation(fig,AWE_2D_animate,frames=frameN,interval=100)
-        anim.save(filename)
+        if writer is None:
+            anim.save(filename)
+        else:
+            anim.save(filename,writer=writer)
         plt.close()
 
     def HTML_display(self,filename,width=500):
