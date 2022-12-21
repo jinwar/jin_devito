@@ -206,5 +206,8 @@ class acoustic_model:
         mod = self
         rx = mod.rec.coordinates.data[:,0]
         rz = mod.rec.coordinates.data[:,1]
+        sx = mod.src.coordinates.data[0,0]
+        sz = mod.src.coordinates.data[0,1]
         data = mod.rec.data
-        np.savez(filename,rx=rx,rz=rz,data=data,dt = self.dt)
+        np.savez(filename,rx=rx,rz=rz,dt = self.dt,
+                    sx=sx,sz=sz,data=data)
