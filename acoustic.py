@@ -23,7 +23,9 @@ class acoustic_model:
         rz = np.ones(rN)*40
         self.set_receiver(rx,rz)
 
-    def set_model(self,model):
+    def set_model(self,v, origin, shape, spacing, space_order=8, nbl=10, bcs="damp"):
+        model = Model(vp=v, origin=origin, shape=shape, spacing=spacing,
+                space_order=8, nbl=10, bcs="damp")
         self.model = model
     
     def set_two_layer_model(self,
@@ -50,6 +52,39 @@ class acoustic_model:
         boundary_ind = boundary_depth//grid_size
         v[:,:boundary_ind] = v1/1000.0
         v[:,boundary_ind:] = v2/1000.0
+        model = Model(vp=v, origin=origin, shape=shape, spacing=spacing,
+                space_order=8, nbl=10, bcs="damp")
+
+        self.model = model
+
+    def set_multi_layer_model(self,
+            x_range = 5000,
+            y_range = 2000,
+            grid_size = 10,
+            boundary_depths=[],
+            vels = []
+        ):
+        '''
+        x_range, y_range, grid_size, boundary_depth are in meter
+        vels is a list/array with N elements, velocity of each layer in m/s
+        boundary_depth is a list/array with N-1 elements, depth of interfaces in meter
+        '''
+
+        Nx = x_range//grid_size
+        Ny = y_range//grid_size
+        shape = (Nx,Ny)
+        spacing = (grid_size,grid_size)
+        origin = (0,0)
+
+        v = np.empty(shape,dtype=np.float32)
+        previous_boundary_ind = 0
+        for i in range(len(boundary_depths)):
+            boundary_ind = boundary_depths[i]//grid_size
+            v[:,previous_boundary_ind:boundary_ind] = vels[i]/1000.0
+            v[:,boundary_ind:] = vels[i+1]/1000.0
+            previous_boundary_ind = boundary_ind
+        
+
         model = Model(vp=v, origin=origin, shape=shape, spacing=spacing,
                 space_order=8, nbl=10, bcs="damp")
 
@@ -164,7 +199,7 @@ class acoustic_model:
         return imax
         
     def make_wavefield_movie(self,filename,timestep_skip=20,
-                        plot_srcrec=False,skip_rec=1,writer=None):
+                        plot_srcrec=False,skip_rec=1,writer=None,scale=0.1):
         mod = self
         data = mod.u.data
 
@@ -176,7 +211,7 @@ class acoustic_model:
         ## . . Set up movie
         fig = plt.figure()
         im_ax = mod.plot_wavefield_bytime(0)
-        plt.clim(np.array([-1,1])*amax*0.1)
+        plt.clim(np.array([-1,1])*amax*scale)
         if plot_srcrec:
             self.plot_src_rec(skip_rec=skip_rec)
 
@@ -211,3 +246,4 @@ class acoustic_model:
         data = mod.rec.data
         np.savez(filename,rx=rx,rz=rz,dt = self.dt,
                     sx=sx,sz=sz,data=data)
+    
