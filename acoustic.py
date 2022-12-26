@@ -62,7 +62,10 @@ class acoustic_model:
             y_range = 2000,
             grid_size = 10,
             boundary_depths=[],
-            vels = []
+            vels = [],
+            space_order=8,
+            nbl=10,
+            bcs="damp"
         ):
         '''
         x_range, y_range, grid_size, boundary_depth are in meter
@@ -86,7 +89,7 @@ class acoustic_model:
         
 
         model = Model(vp=v, origin=origin, shape=shape, spacing=spacing,
-                space_order=8, nbl=10, bcs="damp")
+                space_order=space_order, nbl=nbl, bcs=bcs)
 
         self.model = model
     
