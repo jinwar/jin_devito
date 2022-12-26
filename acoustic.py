@@ -240,13 +240,14 @@ class acoustic_model:
     def IMAGE_display(self,filename):
         return Image(open(filename,'rb').read())
     
-    def export_rec_data(self,filename):
+    def export_rec_data(self,filename,noise_level=0):
         mod = self
         rx = mod.rec.coordinates.data[:,0]
         rz = mod.rec.coordinates.data[:,1]
         sx = mod.src.coordinates.data[0,0]
         sz = mod.src.coordinates.data[0,1]
-        data = mod.rec.data
+        data = mod.rec.data.copy()
+        data += np.random.normal(0,noise_level,size=data.shape)
         np.savez(filename,rx=rx,rz=rz,dt = self.dt,
                     sx=sx,sz=sz,data=data)
     
