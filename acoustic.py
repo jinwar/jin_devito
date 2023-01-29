@@ -2,12 +2,51 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from IPython.display import HTML,Image
+from scipy.signal import chirp, tukey
 
 from examples.seismic import Model, plot_velocity, TimeAxis, RickerSource,Receiver,plot_shotrecord
+from examples.seismic import WaveletSource, PointSource
 from devito import TimeFunction
 from devito import Eq, solve
 from devito import Operator
 
+
+
+
+class vibroseis_src(WaveletSource):
+    __rkwargs__ = PointSource.__rkwargs__ + ['f0', 'f1', 'a', 't0']
+            
+    @property
+    def wavelet(self):
+        t0 = self.t0 or 0
+        t1 = self.t1
+        a = self.a or 1
+        f0 = self.f0
+        f1 = self.f1
+        taxis = self.time_values
+
+        ind = (taxis>=t0)&(taxis<=t1)
+
+        wavelet = chirp(taxis[ind],f0,t1,f1)
+
+        wavelet = tukey(len(wavelet),0.1)*wavelet*a
+
+        outdata = np.zeros_like(taxis)
+        outdata[ind] = wavelet
+        return outdata
+
+    def __init_finalize__(self, *args, **kwargs):
+        super(WaveletSource, self).__init_finalize__(*args, **kwargs)
+
+        self.f0 = kwargs.get('f0')
+        self.f1 = kwargs.get('f1')
+        self.a = kwargs.get('a')
+        self.t0 = kwargs.get('t0')
+        self.t1 = kwargs.get('t1')
+
+        if not self.alias:
+            for p in range(kwargs['npoint']):
+                self.data[:, p] = self.wavelet
 
 class acoustic_model:
 
@@ -121,6 +160,16 @@ class acoustic_model:
         src.coordinates.data[0, :] = sx
         src.coordinates.data[0, -1] = sz 
         self.src = src
+    
+    def set_vibroseis_src(self,sx,sz,t0,t1,f0,f1):
+        src = vibroseis_src(name='src', grid=self.model.grid,
+                        t0=t0,t1=t1,f0=f0/1000,f1=f1/1000,
+                        npoint=1, time_range = self.time_range)
+
+        src.coordinates.data[0, :] = sx
+        src.coordinates.data[0, -1] = sz 
+        self.src = src
+
     
     def set_src(self,src):
         self.src = src
@@ -248,6 +297,7 @@ class acoustic_model:
         sz = mod.src.coordinates.data[0,1]
         data = mod.rec.data.copy()
         data += np.random.normal(0,noise_level,size=data.shape)
+        src_wavelet = mod.src.wavelet
         np.savez(filename,rx=rx,rz=rz,dt = self.dt,
-                    sx=sx,sz=sz,data=data)
+                    sx=sx,sz=sz,data=data,src_wavelet = src_wavelet)
     
